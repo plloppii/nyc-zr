@@ -1,0 +1,15 @@
+[project]
+name = "nyc-zr"
+version = "0.1.0"
+description = "NYC Zoning Resolution, scraped into searchable markdown + SQLite FTS, with an MCP server and Notion sync"
+requires-python = ">=3.11"
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "lxml>=5",
+    "requests>=2.31",
+    "pyyaml>=6",
+    "mcp>=2",
+]
+
+[tool.uv]
+package = false
