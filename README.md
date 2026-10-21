@@ -18,7 +18,7 @@ markdown tables, figures are image links.
 ## Use it: clone and run (no install)
 
 ```bash
-git clone https://github.com/noah-pantastic/nyc-zr.git ~/nyc-zr   # first time
+git clone https://github.com/plloppii/nyc-zr.git ~/nyc-zr   # first time
 git -C ~/nyc-zr pull                                             # before a job: amendments arrive as commits
 python3 ~/nyc-zr/scripts/zr.py get 23-344                        # the index builds itself on the first run (~5 s)
 ```
