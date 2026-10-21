@@ -3,9 +3,5 @@ raw/
 __pycache__/
 *.pyc
 data/zr.sqlite*
-data/sections.jsonl
-data/appendices.jsonl
 data/fetch.log
-data/notion_state.json
 .env
-data/notion_sync.log

@@ -20,8 +20,19 @@ from typing import Optional
 
 try:  # mcp SDK 2.x
     from mcp.server.mcpserver import MCPServer as FastMCP
-except ImportError:  # mcp SDK 1.x
-    from mcp.server.fastmcp import FastMCP
+except ImportError:
+    try:  # mcp SDK 1.x
+        from mcp.server.fastmcp import FastMCP
+    except ImportError:  # no MCP SDK installed: the functions below still serve scripts/zr.py
+        class FastMCP:  # minimal stand-in so the @mcp.tool() decorators are no-ops
+            def __init__(self, *a, **k):
+                pass
+
+            def tool(self, *a, **k):
+                return lambda fn: fn
+
+            def run(self, *a, **k):
+                raise SystemExit("the mcp package is not installed; run `uv sync` to serve over MCP, or use scripts/zr.py")
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 DB = ROOT / "data" / "zr.sqlite"

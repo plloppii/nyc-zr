@@ -5,10 +5,11 @@ description: Look up the NYC Zoning Resolution (full text, 4,000+ sections, 12-1
 
 # NYC Zoning Resolution lookup
 
-Everything runs through one CLI (no network needed except `history`):
+Everything runs through one CLI: plain `python3`, no install, the index builds itself on first use, no network except
+`history`. Run `git -C ~/nyc-zr pull` first when the text may have been amended.
 
 ```bash
-ZR=/Users/noah.pan/nyc-zr; $ZR/.venv/bin/python $ZR/scripts/zr.py <command>
+ZR=~/nyc-zr; python3 $ZR/scripts/zr.py <command>
 ```
 
 | Need | Command |
@@ -25,5 +26,6 @@ Section ids encode location: first digits = article+chapter (`23-` = Article II 
 Art IV; definitions = 12-10; special purpose districts = Art VIII–XIV (Appendix B indexes them).
 
 Always cite the section id and its `url` from the output, and quote the `last_amended` date when it matters.
-The index was built from zr.planning.nyc.gov on the date in `data/zr.sqlite` (`meta` table); rebuild with
-`fetch.py` → `parse.py` → `build_index.py` if DCP has amended the text since.
+The text is as of the `built_at` date in `data/zr.sqlite` (`meta` table). `git -C ~/nyc-zr pull` brings committed
+amendments and the index rebuilds itself; the maintainer refreshes the data with `fetch.py` → `parse.py` →
+`build_index.py` when DCP amends the Resolution.

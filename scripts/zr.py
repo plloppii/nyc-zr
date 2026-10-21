@@ -20,6 +20,20 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "mcp"))
 import server as S  # noqa: E402
 
 
+def ensure_index() -> None:
+    """Build data/zr.sqlite from data/*.jsonl when it is missing or older than them (first run after a clone or a pull)."""
+    import contextlib
+    root = pathlib.Path(__file__).resolve().parent.parent
+    db = root / "data" / "zr.sqlite"
+    sources = [root / "data" / f for f in ("sections.jsonl", "definitions.jsonl", "appendices.jsonl")]
+    if db.exists() and all(not s.exists() or s.stat().st_mtime <= db.stat().st_mtime for s in sources):
+        return
+    import build_index  # same directory as this script
+    print("building data/zr.sqlite from data/*.jsonl (first run, or the data changed) ...", file=sys.stderr)
+    with contextlib.redirect_stdout(sys.stderr):
+        build_index.main()
+
+
 def main():
     ap = argparse.ArgumentParser(prog="zr", description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -39,6 +53,7 @@ def main():
     p = sub.add_parser("history"); p.add_argument("id")
 
     a = ap.parse_args()
+    ensure_index()
     if a.cmd == "search":
         out = S.zr_search(a.query, a.limit, a.article, a.chapter, a.district, a.scope)
         if a.json:
