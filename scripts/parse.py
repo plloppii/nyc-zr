@@ -5,20 +5,28 @@
   sections/appendices/<slug>.md                   one file per appendix
   data/sections.jsonl                             one JSON record per section (same data)
   data/definitions.jsonl                          every defined term from 12-10 (one row per definition)
+  data/appendices.jsonl                           one JSON record per appendix
   data/toc.json                                   article -> chapter -> section tree
+  data/meta.json                                  provenance: when the pages were fetched, latest amendment date, counts
+
+The sections/ tree is rebuilt from scratch so sections DCP removes or renumbers disappear. Plain text for the
+search index is derived from body_md at index time (scripts/zrtext.py), so it is not stored here.
 """
 from __future__ import annotations
 
+import datetime as dt
 import json
 import pathlib
 import re
+import shutil
 import sys
 
 import yaml
 from bs4 import BeautifulSoup
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from zrhtml import BASE, html_to_markdown, markdown_to_text, norm_ws  # noqa: E402
+from zrhtml import BASE, html_to_markdown, norm_ws  # noqa: E402
+from zrtext import extract_districts, markdown_to_text  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 RAW_CH = ROOT / "raw/chapters"
@@ -26,8 +34,12 @@ RAW_AP = ROOT / "raw/appendices"
 OUT = ROOT / "sections"
 DATA = ROOT / "data"
 
-# Zoning district tokens, e.g. R6B, R7-2, C4-4A, C1-3 overlays, M1-5/R7X, M1-1, PARK, BPC
-DISTRICT_RE = re.compile(r"\b(R(?:1[0-2]|[1-9])(?:[A-Z]|-\d[A-Z]?)?|C[1-8](?:-\d{1,2}[A-Z]?)?|M[1-3](?:-\d[A-Z]?)?)\b")
+# what goes into data/sections.jsonl; "text" is derived at index time and "definitions" go to definitions.jsonl
+SECTION_JSON_KEYS = ("id", "node_id", "article", "article_num", "article_title", "chapter", "chapter_title", "title",
+                     "level", "parent", "url", "last_amended", "defined_terms", "cross_refs", "images", "districts",
+                     "body_md")
+FRONTMATTER_KEYS = ("id", "title", "article", "article_title", "chapter", "chapter_title", "level", "parent", "url",
+                    "last_amended", "node_id", "districts", "defined_terms", "cross_refs")
 
 
 def roman_to_int(s: str) -> int:
@@ -126,7 +138,6 @@ def parse_chapter(path: pathlib.Path):
                     f"### {d['term']}\n\n_{d['applicability']}" + (f" · last amended {d['last_amended']}" if d['last_amended'] else "") + f"_\n\n{d['definition_md']}"
                     for d in definitions)
         text = markdown_to_text(md)
-        districts = sorted(set(DISTRICT_RE.findall(title + " " + text)))
         rec = {
             "id": sid,
             "node_id": int(node_id) if node_id and node_id.isdigit() else None,
@@ -143,7 +154,7 @@ def parse_chapter(path: pathlib.Path):
             "defined_terms": sorted(col.defined_terms) if col else [],
             "cross_refs": sorted(col.cross_refs) if col else [],
             "images": col.images if col else [],
-            "districts": districts,
+            "districts": extract_districts(title + " " + text),
             "body_md": md,
             "text": text,
             "definitions": definitions,
@@ -178,7 +189,6 @@ def parse_definitions(view, source_sid):
                 "last_amended": last_amended,
                 "source_section": src.group(1) if src else source_sid,
                 "definition_md": md,
-                "text": markdown_to_text(md),
                 "defined_terms": sorted(col.defined_terms) if col else [],
                 "cross_refs": sorted(col.cross_refs) if col else [],
                 "url": f"{BASE}/article-i/chapter-2/12-10#term-{term}",
@@ -210,9 +220,8 @@ def parse_appendix(path: pathlib.Path):
         "last_amended": last_amended,
         "cross_refs": sorted(col.cross_refs),
         "images": col.images,
-        "districts": sorted(set(DISTRICT_RE.findall(text))),
+        "districts": extract_districts(text),
         "body_md": md,
-        "text": text,
     }
 
 
@@ -222,47 +231,88 @@ def write_md(path: pathlib.Path, front: dict, body: str):
     path.write_text(f"---\n{fm}\n---\n\n{body}\n", encoding="utf-8")
 
 
+def iso(ts: float) -> str:
+    return dt.datetime.fromtimestamp(ts, dt.timezone.utc).isoformat(timespec="seconds")
+
+
 def main():
+    chapter_pages = sorted(RAW_CH.glob("*.html"),
+                           key=lambda p: (roman_to_int(p.stem.split("__")[0].split("-")[1]), int(p.stem.split("chapter-")[1])))
+    appendix_pages = sorted(RAW_AP.glob("*.html"))
+    if not chapter_pages:
+        sys.exit("raw/chapters is empty: run scripts/fetch.py first")
     DATA.mkdir(exist_ok=True)
+    # start from an empty tree so sections DCP removes or renumbers do not linger as stale files
+    if OUT.exists():
+        shutil.rmtree(OUT)
+    OUT.mkdir()
+
     toc: dict = {}
     n_sections = 0
     all_defs = []
+    seen: set[str] = set()
+    latest_amendment: str | None = None
     with (DATA / "sections.jsonl").open("w", encoding="utf-8") as sj:
-        for path in sorted(RAW_CH.glob("*.html"), key=lambda p: (roman_to_int(p.stem.split("__")[0].split("-")[1]), int(p.stem.split("chapter-")[1]))):
+        for path in chapter_pages:
             meta, recs = parse_chapter(path)
+            kept = []
+            for r in recs:
+                if r["id"] in seen:  # the site has rendered one section twice; keep the first occurrence
+                    print(f"  ! duplicate section id {r['id']} in {path.name}; keeping the first occurrence", file=sys.stderr)
+                    continue
+                seen.add(r["id"])
+                kept.append(r)
             art = toc.setdefault(meta["article"], {"article": meta["article"], "article_num": meta["article_num"],
                                                    "article_title": meta["article_title"], "chapters": []})
             art["chapters"].append({**{k: meta[k] for k in ("chapter", "chapter_title", "chapter_last_amended", "url", "slug")},
                                     "sections": [{"id": r["id"], "title": r["title"], "level": r["level"], "parent": r["parent"],
-                                                  "last_amended": r["last_amended"]} for r in recs]})
-            for r in recs:
-                front = {k: r[k] for k in ("id", "title", "article", "article_title", "chapter", "chapter_title", "level",
-                                           "parent", "url", "last_amended", "node_id", "districts", "defined_terms", "cross_refs")}
+                                                  "last_amended": r["last_amended"]} for r in kept]})
+            for r in kept:
+                front = {k: r[k] for k in FRONTMATTER_KEYS}
                 heading = f"# {r['id']} {r['title']}".rstrip()
                 write_md(OUT / meta["slug"] / f"{r['id']}.md", front, heading + "\n\n" + r["body_md"])
-                sj.write(json.dumps(r, ensure_ascii=False) + "\n")
+                sj.write(json.dumps({k: r[k] for k in SECTION_JSON_KEYS}, ensure_ascii=False) + "\n")
                 all_defs.extend(r["definitions"])
+                if r["last_amended"] and (latest_amendment is None or r["last_amended"] > latest_amendment):
+                    latest_amendment = r["last_amended"]
                 n_sections += 1
-            print(f"{meta['article']:>4} ch{meta['chapter']:<2} {len(recs):4} sections  {meta['chapter_title']}")
+            print(f"{meta['article']:>4} ch{meta['chapter']:<2} {len(kept):4} sections  {meta['chapter_title']}")
     with (DATA / "definitions.jsonl").open("w", encoding="utf-8") as dj:
         for d in all_defs:
             dj.write(json.dumps(d, ensure_ascii=False) + "\n")
 
     appendices = []
-    for path in sorted(RAW_AP.glob("*.html")):
-        r = parse_appendix(path)
-        write_md(OUT / "appendices" / f"{r['id']}.md",
-                 {k: r[k] for k in ("id", "title", "url", "last_amended", "districts", "cross_refs")},
-                 f"# {r['title']}\n\n{r['body_md']}")
-        appendices.append({k: r[k] for k in ("id", "title", "url", "last_amended")})
-        print(f" app {len(r['text']):>7} chars  {r['title'][:70]}")
     with (DATA / "appendices.jsonl").open("w", encoding="utf-8") as aj:
-        for path in sorted(RAW_AP.glob("*.html")):
-            aj.write(json.dumps(parse_appendix(path), ensure_ascii=False) + "\n")
+        for path in appendix_pages:
+            r = parse_appendix(path)
+            write_md(OUT / "appendices" / f"{r['id']}.md",
+                     {k: r[k] for k in ("id", "title", "url", "last_amended", "districts", "cross_refs")},
+                     f"# {r['title']}\n\n{r['body_md']}")
+            aj.write(json.dumps(r, ensure_ascii=False) + "\n")
+            appendices.append({k: r[k] for k in ("id", "title", "url", "last_amended")})
+            if r["last_amended"] and (latest_amendment is None or r["last_amended"] > latest_amendment):
+                latest_amendment = r["last_amended"]
+            print(f" app {len(r['body_md']):>7} chars  {r['title'][:70]}")
 
     (DATA / "toc.json").write_text(json.dumps({"articles": sorted(toc.values(), key=lambda a: a["article_num"]),
                                                "appendices": appendices}, indent=1, ensure_ascii=False), encoding="utf-8")
-    print(f"\n{n_sections} sections, {len(all_defs)} definitions, {len(appendices)} appendices")
+
+    # provenance: the text is as of the fetch, not of whenever a clone builds its index
+    mtimes = [p.stat().st_mtime for p in chapter_pages + appendix_pages]
+    meta = {
+        "source": BASE,
+        "fetched_at": iso(max(mtimes)),
+        "fetched_earliest": iso(min(mtimes)),
+        "parsed_at": iso(dt.datetime.now(dt.timezone.utc).timestamp()),
+        "latest_amendment": latest_amendment,
+        "chapters": len(chapter_pages),
+        "sections": n_sections,
+        "definitions": len(all_defs),
+        "appendices": len(appendices),
+    }
+    (DATA / "meta.json").write_text(json.dumps(meta, indent=1) + "\n", encoding="utf-8")
+    print(f"\n{n_sections} sections, {len(all_defs)} definitions, {len(appendices)} appendices; "
+          f"fetched {meta['fetched_at'][:10]}, latest amendment {latest_amendment}")
 
 
 if __name__ == "__main__":

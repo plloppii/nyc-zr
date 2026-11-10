@@ -1,0 +1,23 @@
+name: ci
+on:
+  push:
+  pull_request:
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync
+      - run: uv run pytest -q
+  no-install:
+    # the README promise: a clone and the system python3 are enough for the CLI
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 --version
+      - run: python3 scripts/zr.py info
+      - run: python3 scripts/zr.py get 23-344 --parents > /dev/null
+      - run: python3 scripts/zr.py search "rear yard corner lot" --district R6B --article II --json | python3 -c "import json,sys; assert json.load(sys.stdin)['count'] > 0"
+      - run: python3 scripts/zr.py define "corner lot" > /dev/null
+      - run: '! python3 scripts/zr.py get 99-999'

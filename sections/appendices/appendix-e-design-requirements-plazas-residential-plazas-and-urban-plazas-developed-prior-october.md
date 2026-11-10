@@ -9,6 +9,12 @@ districts:
 - C6-9
 - R10
 - R3
+- R4
+- R5
+- R6
+- R7
+- R8
+- R9
 cross_refs:
 - 12-10
 - 23-13

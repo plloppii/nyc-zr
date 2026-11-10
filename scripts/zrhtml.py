@@ -14,6 +14,8 @@ from dataclasses import dataclass, field
 
 from bs4 import BeautifulSoup, NavigableString, Tag
 
+from zrtext import markdown_to_text, norm_ws  # noqa: F401  (markdown_to_text re-exported for callers)
+
 BASE = "https://zr.planning.nyc.gov"
 SEC_ID_RE = re.compile(r"^\d{1,3}-\d{2,4}$")
 
@@ -46,10 +48,6 @@ def list_marker(depth: int, n: int) -> str:
     if style == 2:
         return f"({roman_lower(n)})"
     return f"({alpha(n, upper=True)})"
-
-
-def norm_ws(s: str) -> str:
-    return re.sub(r"[ \t\r\n ]+", " ", s)
 
 
 def abs_url(href: str) -> str:
@@ -294,14 +292,3 @@ def html_to_markdown(root: Tag) -> tuple[str, Collected]:
     return md, conv.c
 
 
-def markdown_to_text(md: str) -> str:
-    t = re.sub(r"!\[[^\]]*\]\([^)]*\)", " ", md)
-    t = re.sub(r"\[([^\]]*)\]\([^)]*\)", r"\1", t)
-    t = t.replace("\\*", "\x00")  # protect literal asterisks
-    t = t.replace("**_", "").replace("_**", "").replace("**", "").replace("*", "")
-    t = t.replace("\x00", "*")
-    t = re.sub(r"^\|[-| ]+\|$", "", t, flags=re.M)
-    t = t.replace("|", " ")
-    t = re.sub(r"[ \t]+", " ", t)
-    t = re.sub(r"\n{2,}", "\n", t)
-    return t.strip()
