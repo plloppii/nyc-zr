@@ -23,7 +23,8 @@ import sys
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-sys.path.insert(0, str(ROOT / "mcp"))
+for _p in (ROOT / "mcp", HERE):  # explicit so `python3 -I` (no script dir on sys.path) works too
+    sys.path.insert(0, str(_p))
 import server as S  # noqa: E402
 
 SOURCES = ("sections.jsonl", "definitions.jsonl", "appendices.jsonl", "meta.json")
