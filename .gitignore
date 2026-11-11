@@ -2,7 +2,6 @@ raw/
 .venv/
 __pycache__/
 *.pyc
-.pytest_cache/
-data/zr.sqlite*
-data/fetch.log
+data/*.sqlite*
+data/*/fetch.log
 .env

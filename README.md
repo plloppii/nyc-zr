@@ -1,133 +1,92 @@
-# nyc-zr — the NYC Zoning Resolution, made searchable for agents
+# nyc-zr
 
-[![ci](https://github.com/plloppii/nyc-zr/actions/workflows/ci.yml/badge.svg)](https://github.com/plloppii/nyc-zr/actions/workflows/ci.yml)
+NYC building law from the command line. The full text of four laws as markdown files, and one small tool that
+searches them and routes a floorplan question to the sections that govern it.
 
-The full text of the [NYC Zoning Resolution](https://zr.planning.nyc.gov) (14 Articles, 101 chapters,
-~4,000 sections, the 12-10 definitions, and the appendices) scraped into:
-
-| Layer | What | Why |
-| --- | --- | --- |
-| `sections/**.md` | one markdown file per section with YAML frontmatter (id, title, article, chapter, parent, last-amended date, defined terms, cross-refs, districts named, source URL) | grep-able, diff-able, git-friendly source of truth |
-| `data/*.jsonl`, `data/toc.json` | the same data as JSON records plus the outline | what the index is built from, so a clone is self-contained |
-| `data/meta.json` | provenance: when the pages were fetched, the latest amendment date in the text, counts | so an answer can say what date the text is as of |
-| `data/zr.sqlite` | SQLite with FTS5 (BM25) over sections, definitions, appendices; built locally on first use | fast, deterministic search with snippets |
-| `scripts/zr.py` | CLI: search / get / define / chapter / toc / district / history / info | what an agent runs; plain `python3`, no install |
-| `mcp/server.py` | the same functions as an MCP server | for MCP clients |
-
-Markdown conventions mirror the printed Resolution: defined terms are `**_bold italic_**`, cross-references are
-links to the canonical `zr.planning.nyc.gov` section URL, nested paragraphs are `(a)` / `(1)` / `(i)`, tables are
-markdown tables, figures are image links. The `districts` list names every district a section mentions, with ranges
-such as "R6 through R12" expanded to each district in between.
-
-## Use it: clone and run (no install)
+| Code | Law | What it governs | Text from |
+| --- | --- | --- | --- |
+| `zr` | [NYC Zoning Resolution](https://zr.planning.nyc.gov) | bulk and use at the lot level: floor area, height, yards, courts, lot coverage, parking, what counts as floor area, non-complying buildings | zr.planning.nyc.gov |
+| `bc` | 2022 NYC Building Code, all 34 chapters DOB publishes (appendices excluded) | construction: occupancy, egress, fire separation, light and ventilation, room dimensions, accessibility | the Department of Buildings' chapter PDFs |
+| `mdl` | NY Multiple Dwelling Law | state law for buildings with three or more units: room sizes, windows, yards and courts, stairs, basements and cellars, conversions | nysenate.gov text, read via newyork.public.law |
+| `hmc` | NYC Housing Maintenance Code | minimum standards for existing dwellings: occupancy, room sizes, light and ventilation, sanitary facilities, cellars | the city's PDF of Administrative Code title 27, chapter 2 |
 
 ```bash
-git clone https://github.com/plloppii/nyc-zr.git ~/nyc-zr   # first time
-git -C ~/nyc-zr pull                                             # before a job: amendments arrive as commits
-python3 ~/nyc-zr/scripts/zr.py get 23-344                        # the index builds itself on the first run (~1 s)
-python3 ~/nyc-zr/scripts/zr.py info                              # what date the text is as of
+git clone https://github.com/plloppii/nyc-zr.git
+cd nyc-zr
+python3 zr.py topic "room size"            # which sections of which law govern it, with citations
+python3 zr.py get mdl:31                   # read one
+python3 zr.py search "ceiling height" --code bc
 ```
 
-The CLI needs only Python 3.11+ with SQLite FTS5 (python.org, Homebrew and most Linux builds have it). Everything it
-reads is in the repo: `data/*.jsonl` is the source of the index, and `data/zr.sqlite` is built from it locally and
-gitignored. Only `history` touches the network, and it too needs nothing beyond the standard library.
+Needs Python 3.11 or newer, nothing else. The search index builds itself from `data/` on the first run (a few
+seconds) and again whenever the data changes, for example after `git pull`.
 
-## CLI
+## Commands
+
+| Command | What it does |
+| --- | --- |
+| `topic` | lists the floorplan topics: room size, ceiling height, light and ventilation, egress, bathrooms and kitchens, cellars and basements, occupancy, floor area, existing buildings, accessibility, fire separation |
+| `topic "room size"` | the sections across all four laws that govern it, each with a one-line reason, the official URL and the command that opens it. `--text` prints their full text. |
+| `search "rear yard corner lot"` | full-text search across every loaded law, best matches first. `--code bc` for one law. Zoning filters: `--district R6B`, `--article II`, `--article II --chapter 3`, `--scope all` to include 12-10 definitions and appendices. Words are AND-ed; `"quoted phrases"`, `prefix*` and `AND / OR / NOT / NEAR` work. |
+| `get 23-344`, `get bc:1208.1`, `get mdl:31`, `get hmc:27-2074` | one section as markdown. Bare ids are the Zoning Resolution; the others take a `code:` prefix. `--parents` shows the headings above it, `--children` everything under it (a whole group such as `23-30` or `bc:1208`). |
+| `define "corner lot"` | definitions from Zoning Resolution Section 12-10. |
+| `toc`, `toc II`, `chapter II 3` | the Zoning Resolution outline: all articles, one article, one chapter. |
+| `toc mdl`, `toc bc:chapter-10` | another law's headings, or everything under one heading. |
+| `district R6B` | every Zoning Resolution section that names a district, including ranges such as "R6 through R12". |
+| `history 23-344` | a Zoning Resolution section's amendment history, fetched live from the DCP site. The only command that uses the network. |
+| `info` | which laws are loaded, where each came from and what date each is as of. |
+
+Add `--json` to any command for machine-readable output. Every section and search hit carries its citation
+(`ZR § 23-344`, `BC 1208.1`, `MDL § 31`, `HMC § 27-2074`), the source URL and the amendment date where the source
+records one. Errors go to stderr with exit status 1.
+
+The topics are a hand-kept map in `data/topics.json`: a question, and for each law the sections that answer it with a
+one-line reason. The tool checks each citation against the text when it builds the index and says so when one is
+missing. It points at the law to read; it does not decide whether a plan complies.
+
+Zoning Resolution ids encode their place: `23-344` is Article II, Chapter 3, group 23-30, section 23-34. Building
+Code ids are the code's own (`1208.1` is in Chapter 12). Multiple Dwelling Law sections are numbered through the whole
+law (`31`); Housing Maintenance Code sections carry the Administrative Code number (`27-2074`).
+
+## What is in the repo
+
+| Path | Contents |
+| --- | --- |
+| `zr.py` | the tool, standard library only |
+| `sections/zr/<article>/<chapter>/<id>.md` | one file per Zoning Resolution section with YAML frontmatter: id, title, parent, last-amended date, defined terms, cross-references, districts named, source URL; `sections/zr/appendices/` holds the appendices |
+| `sections/bc/chapter-<n>/<section>.md` | one file per Building Code section (`1208.md`), its subsections inside, with the chapter PDF's date |
+| `sections/mdl/article-<n>/[title-<n>/]<section>.md` | one file per Multiple Dwelling Law section with the official nysenate.gov URL and update date |
+| `sections/hmc/subchapter-<n>/article-<n>/<section>.md` | one file per Housing Maintenance Code section |
+| `data/<code>/sections.jsonl`, `meta.json` | the same text as JSON lines (headings included, with an empty body), and when it was fetched; `data/zr/` also has `definitions.jsonl`, `appendices.jsonl` and `toc.json` |
+| `data/topics.json` | the topic map |
+| `scripts/` | the scrapers |
+
+Zoning Resolution markdown mirrors the printed text: defined terms are `**_bold italic_**`, cross-references link to
+the canonical section URL, nested paragraphs are `(a)` / `(1)` / `(i)`, tables are markdown tables. Building Code and
+Housing Maintenance Code text comes from PDFs, so their tables are kept as fixed-width blocks. `git log -- sections/`
+is the amendment history of everything.
+
+## Refresh the text
 
 ```bash
-python3 scripts/zr.py search "rear yard corner lot" --district R6B --article II   # words AND-ed; "phrases", prefix*, AND/OR/NOT/NEAR
-python3 scripts/zr.py get 23-344 --parents          # one section as markdown with a JSON header; --children for a whole group
-python3 scripts/zr.py define "corner lot"           # 12-10 definitions, follows "see …" pointers
-python3 scripts/zr.py chapter II 3 | toc [II] | district R6B | history 23-344 | info
+uv sync                                   # or: pip install beautifulsoup4 lxml requests pyyaml
+brew install poppler                      # pdftotext, for the two PDF sources
+.venv/bin/python scripts/zr_fetch.py      # ~2 min: the Zoning Resolution's chapter and appendix pages into raw/zr/
+.venv/bin/python scripts/zr_parse.py      # ~20 s: raw/zr/ -> sections/zr/ and data/zr/
+.venv/bin/python scripts/bc.py            # ~1 min: the 34 chapter PDFs -> sections/bc/ and data/bc/
+.venv/bin/python scripts/mdl.py           # ~4 min: every section page -> sections/mdl/ and data/mdl/
+.venv/bin/python scripts/hmc.py           # ~10 s: one PDF -> sections/hmc/ and data/hmc/
+git diff --stat sections/                 # what changed
 ```
 
-- Every command takes `--json` for machine-readable output.
-- Errors (`no section 99-999`, bad query syntax, an unknown article) go to stderr with exit status 1; usage errors exit 2.
-  `--chapter` requires `--article`, because chapter numbers repeat in every article.
-- `--district R6B` keeps sections that name R6B or its family (R6), including those that say "R6 through R12".
-- A bare group heading such as `23-00` has no text of its own; `get` lists its subsections so you know what to read next.
+Downloads are cached under `raw/` and only missing files are fetched; `--force` refetches. Commit the result and
+clones pick it up with `git pull`, rebuilding their index on the next run.
 
-Every hit and section carries the section id, the official `zr.planning.nyc.gov` URL and the last-amended date, so an
-answer can be cited without opening the site. `info` reports the fetch date and the latest amendment in the text; the
-`built_at` time in the index is only when this clone indexed it.
+Provenance differs by source. The Zoning Resolution site gives a last-amended date per section. The Multiple
+Dwelling Law mirror gives the state's update date per section. The Building Code PDFs mark amended sections with ‡
+and name the Local Law and its effective date at the top of each chapter; other sections carry no date beyond the
+PDF's own. The Housing Maintenance Code PDF has no amendment notes at all, so its entries carry only the PDF's date.
+`info` reports all of this.
 
-A project skill at `.claude/skills/zr/SKILL.md` teaches Claude Code the same commands; copy it to
-`~/.claude/skills/zr/` to make it available from any directory.
-
-## Rebuild from the source site
-
-```bash
-uv sync                                   # bs4, lxml, requests, pyyaml, mcp (+ pytest): only these scripts, the MCP server and the tests need them
-.venv/bin/python scripts/fetch.py         # ~2 min: 117 pages into raw/ (cached; --force to refetch)
-.venv/bin/python scripts/parse.py         # ~20 s: raw/ -> sections/ + data/*.jsonl + data/toc.json + data/meta.json
-.venv/bin/python scripts/build_index.py   # ~1 s: data/zr.sqlite
-```
-
-`fetch.py` first reads the site's home and article pages and appends any chapter or appendix missing from
-`data/chapter_urls.txt` / `data/appendix_urls.txt` (`--no-discover` to skip). `parse.py` rebuilds `sections/` from
-scratch, so a section DCP removes or renumbers disappears rather than lingering. Re-run all three whenever DCP amends
-the text (the site shows per-section "Last Amended" dates, which land in the frontmatter, so `git diff sections/`
-shows exactly what changed), then commit so clones pick the change up with `git pull`.
-
-Plain text for the search index is derived from the markdown at build time (`scripts/zrtext.py`, standard library
-only), so the committed JSON carries each section once.
-
-## Tests
-
-```bash
-uv run pytest -q
-```
-
-Unit tests cover the query parser, district tokens and ranges, the HTML→markdown converter, and the shared search
-functions against a small synthetic index; `tests/test_cli.py` runs the real CLI against the committed data. CI runs
-the suite and, separately, the CLI on a bare runner with the system `python3` to keep the no-install promise honest.
-
-## MCP server
-
-Needs the `mcp` package from `uv sync`.
-
-```bash
-claude mcp add --scope user nyc-zr -- "$PWD/.venv/bin/python" "$PWD/mcp/server.py"
-```
-
-(On a managed Claude Code install `claude mcp add` can be refused by enterprise policy; the CLI above is the
-fallback, and the server still works with any other MCP client.)
-
-Tools:
-
-- `zr_search(query, limit, article, chapter, district, scope)` — BM25 full text, titles weighted above body text.
-  Words are AND-ed, `"quoted phrases"`, `prefix*`, and FTS5 `AND/OR/NOT/NEAR` work; if nothing matches every term,
-  the same words and phrases are OR-ed. `district="R6B"` keeps only sections that name that district or its family.
-  `chapter` requires `article`. `scope` = sections | definitions | appendices | all.
-- `zr_get_section(id, include_children, include_parents)` — one section as markdown; `include_children=true` returns
-  a whole group (e.g. all of 23-30 Yard Regulations). A bare heading lists its subsections.
-- `zr_list_chapter(article, chapter)` / `zr_toc(article)` — navigation.
-- `zr_define(term)` — 12-10 definitions, general first, then chapter-specific; short aliases work ("accessory").
-- `zr_district(district, article)` — every section naming a district token, ranges included.
-- `zr_history(id)` — live amendment history from the DCP site.
-
-Errors come back as a JSON object with an `error` key.
-
-## Architecture
-
-```
-zr.planning.nyc.gov ──fetch──> raw/*.html ──parse──> sections/*.md + data/*.jsonl + data/meta.json
-                                                          │
-                                             ┌────────────┴────────────┐
-                                             ▼                         ▼
-                                     data/zr.sqlite (FTS5)        git history
-                                             │                 (diff on amendment)
-                                scripts/zr.py · mcp/server.py
-                                             │
-                                             ▼
-                                           agent
-```
-
-The markdown tree is the source of truth and the git history records what DCP changed. Retrieval over the 5 MB of
-legal text goes through the SQLite FTS layer, reached from the CLI or the MCP server, which return the section id,
-the official URL and the last-amended date so every answer can be cited.
-
-## License
-
-The code is MIT licensed (see `LICENSE`). The Resolution text under `sections/` and `data/` is © City of New York,
-Department of City Planning; this repo only restructures it.
+Source text © City of New York (Zoning Resolution, Building Code, Housing Maintenance Code) and State of New York
+(Multiple Dwelling Law). This repo only restructures it. Code: MIT.

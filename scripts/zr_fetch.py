@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Download every chapter and appendix page of the NYC Zoning Resolution.
 
-Pages are cached under raw/. Re-running only fetches missing files unless --force is given. Before fetching, the
-site's home and article pages are read to discover chapters and appendices that data/chapter_urls.txt and
-data/appendix_urls.txt do not list yet; new ones are appended to those lists (--no-discover skips this). Be polite:
+Pages are cached under raw/zr/. Re-running only fetches missing files unless --force is given. Before fetching, the
+site's home and article pages are read to discover chapters and appendices that data/zr/chapter_urls.txt and
+data/zr/appendix_urls.txt do not list yet; new ones are appended to those lists (--no-discover skips this). Be polite:
 one request at a time with a short delay.
 """
 import argparse
@@ -16,8 +16,8 @@ import requests
 
 BASE = "https://zr.planning.nyc.gov"
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-CH_LIST = ROOT / "data/chapter_urls.txt"
-AP_LIST = ROOT / "data/appendix_urls.txt"
+CH_LIST = ROOT / "data/zr/chapter_urls.txt"
+AP_LIST = ROOT / "data/zr/appendix_urls.txt"
 UA = "nyc-zr-indexer/0.2 (personal research tool; https://github.com/plloppii/nyc-zr)"
 
 ARTICLE_HREF = re.compile(r'href="(/article-[ivx]+)"')
@@ -124,8 +124,8 @@ def main():
                 AP_LIST.write_text("\n".join(merged_ap) + "\n")
             chapters, appendices = merged_ch, merged_ap
 
-    jobs = [(p, ROOT / "raw/chapters" / f"{slug(p)}.html") for p in chapters]
-    jobs += [(p, ROOT / "raw/appendices" / f"{slug(p)}.html") for p in appendices]
+    jobs = [(p, ROOT / "raw/zr/chapters" / f"{slug(p)}.html") for p in chapters]
+    jobs += [(p, ROOT / "raw/zr/appendices" / f"{slug(p)}.html") for p in appendices]
     counts: dict[str, int] = {}
     for i, (path, dest) in enumerate(jobs, 1):
         status = fetch(s, path, dest, args.force)

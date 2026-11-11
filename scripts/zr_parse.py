@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """Parse the cached chapter/appendix HTML into:
 
-  sections/<article>/<chapter>/<section-id>.md   one markdown file per section, YAML frontmatter
-  sections/appendices/<slug>.md                   one file per appendix
-  data/sections.jsonl                             one JSON record per section (same data)
-  data/definitions.jsonl                          every defined term from 12-10 (one row per definition)
-  data/appendices.jsonl                           one JSON record per appendix
-  data/toc.json                                   article -> chapter -> section tree
-  data/meta.json                                  provenance: when the pages were fetched, latest amendment date, counts
+  sections/zr/<article>/<chapter>/<section-id>.md   one markdown file per section, YAML frontmatter
+  sections/zr/appendices/<slug>.md                   one file per appendix
+  data/zr/sections.jsonl                             one JSON record per section (same data)
+  data/zr/definitions.jsonl                          every defined term from 12-10 (one row per definition)
+  data/zr/appendices.jsonl                           one JSON record per appendix
+  data/zr/toc.json                                   article -> chapter -> section tree
+  data/zr/meta.json                                  provenance: when the pages were fetched, latest amendment date, counts
 
 The sections/ tree is rebuilt from scratch so sections DCP removes or renumbers disappear. Plain text for the
 search index is derived from body_md at index time (scripts/zrtext.py), so it is not stored here.
@@ -29,10 +29,10 @@ from zrhtml import BASE, html_to_markdown, norm_ws  # noqa: E402
 from zrtext import extract_districts, markdown_to_text  # noqa: E402
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-RAW_CH = ROOT / "raw/chapters"
-RAW_AP = ROOT / "raw/appendices"
-OUT = ROOT / "sections"
-DATA = ROOT / "data"
+RAW_CH = ROOT / "raw/zr/chapters"
+RAW_AP = ROOT / "raw/zr/appendices"
+OUT = ROOT / "sections/zr"
+DATA = ROOT / "data/zr"
 
 # what goes into data/sections.jsonl; "text" is derived at index time and "definitions" go to definitions.jsonl
 SECTION_JSON_KEYS = ("id", "node_id", "article", "article_num", "article_title", "chapter", "chapter_title", "title",
@@ -241,11 +241,11 @@ def main():
     appendix_pages = sorted(RAW_AP.glob("*.html"))
     if not chapter_pages:
         sys.exit("raw/chapters is empty: run scripts/fetch.py first")
-    DATA.mkdir(exist_ok=True)
+    DATA.mkdir(parents=True, exist_ok=True)
     # start from an empty tree so sections DCP removes or renumbers do not linger as stale files
     if OUT.exists():
         shutil.rmtree(OUT)
-    OUT.mkdir()
+    OUT.mkdir(parents=True)
 
     toc: dict = {}
     n_sections = 0

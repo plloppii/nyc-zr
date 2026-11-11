@@ -1,21 +1,15 @@
 [project]
 name = "nyc-zr"
-version = "0.2.0"
-description = "NYC Zoning Resolution, scraped into searchable markdown + SQLite FTS, with a CLI and an MCP server"
+version = "0.3.0"
+description = "NYC building law from the command line: the Zoning Resolution, Building Code, Multiple Dwelling Law and Housing Maintenance Code as markdown plus one search tool"
 requires-python = ">=3.11"
+# only scripts/fetch.py and scripts/parse.py need these; zr.py itself is standard library
 dependencies = [
     "beautifulsoup4>=4.12",
     "lxml>=5",
     "requests>=2.31",
     "pyyaml>=6",
-    "mcp>=2",
 ]
-
-[dependency-groups]
-dev = ["pytest>=8"]
 
 [tool.uv]
 package = false
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]

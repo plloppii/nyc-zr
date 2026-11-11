@@ -2,7 +2,7 @@ MIT License
 
 Copyright (c) 2026 Noah Pan
 
-This license covers the code in this repository (scripts/, mcp/, tests/, and the project configuration). The text
+This license covers the code in this repository (zr.py, scripts/, data/topics.json and the project configuration). The text
 of the New York City Zoning Resolution reproduced under sections/ and data/ is the work of the City of New York,
 Department of City Planning, and is restructured here without modification of its content; it is not covered by
 this license.
