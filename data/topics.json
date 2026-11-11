@@ -1,0 +1,180 @@
+{
+ "_about": "Which sections of which law govern a question about a floorplan. Hand-kept; every citation is checked against the text in this repo and the tool says so when one is missing. These are pointers to the law to read, not a code check: the Multiple Dwelling Law and the Housing Maintenance Code in particular depend on when the building was erected and its class, so read each section's applicability paragraph.",
+
+ "room size": {
+  "question": "How small may a habitable room be, in floor area and least dimension?",
+  "aliases": ["minimum room", "room area", "room width", "bedroom size", "living room size"],
+  "cites": [
+   {"code": "bc", "id": "1208.1", "why": "minimum plan dimension of habitable rooms (8 ft, with the 7 ft and 6 ft exceptions) and kitchen passageways"},
+   {"code": "bc", "id": "1208.3", "why": "minimum floor area of the largest room and of other habitable rooms"},
+   {"code": "bc", "id": "202", "why": "the Building Code definitions, including habitable space, kitchen and kitchenette"},
+   {"code": "mdl", "id": "31", "why": "multiple dwellings erected after April 18, 1929: 132 sf living room, 80 sf other rooms, 8 ft least dimension, 8 ft height, class B one-room units"},
+   {"code": "mdl", "id": "32", "why": "alcoves: when an alcove counts as a room"},
+   {"code": "mdl", "id": "33", "why": "cooking spaces and kitchenettes"},
+   {"code": "mdl", "id": "174", "why": "size of rooms in converted dwellings (Article 6)"},
+   {"code": "mdl", "id": "214", "why": "size of rooms in tenements (Article 7)"},
+   {"code": "hmc", "id": "27-2074", "why": "minimum room sizes by building class and date erected: 150 or 132 sf living room, 80 sf other rooms, 8 ft least dimension, the 70 sf / 7 ft adjoining-room exception"},
+   {"code": "hmc", "id": "27-2075", "why": "maximum occupancy: 80 sf of livable floor area per person, and which rooms count"},
+   {"code": "zr", "id": "12-10", "term": "floor area", "why": "what the Zoning Resolution counts as floor area (the zoning limit on the whole building, not on rooms)"}
+  ]
+ },
+
+ "ceiling height": {
+  "question": "What is the minimum ceiling height of habitable rooms, and how is it measured under beams and in basements?",
+  "aliases": ["height of rooms", "clear height", "headroom"],
+  "cites": [
+   {"code": "bc", "id": "1208.2", "why": "8 ft for habitable rooms, 7 ft 6 in for occupiable spaces and corridors, 7 ft for bathrooms, kitchens and storage; beam and basement exceptions"},
+   {"code": "mdl", "id": "31", "why": "paragraph 2(c): every room at least eight feet high, finished floor to underside of ceiling beams"},
+   {"code": "mdl", "id": "34", "why": "rooms in basements and cellars: height above curb and ceiling height"},
+   {"code": "hmc", "id": "27-2074", "why": "subdivision a: eight feet in multiple dwellings erected after 1929; subdivision b: converted dwellings"}
+  ]
+ },
+
+ "light and ventilation": {
+  "question": "How much window area must a room have, what may the window open onto, and when is mechanical ventilation allowed instead?",
+  "aliases": ["light and air", "natural light", "window area", "ventilation", "windows", "window"],
+  "cites": [
+   {"code": "bc", "id": "1203", "why": "ventilation: natural (openable area as a share of floor area, by room type) or mechanical"},
+   {"code": "bc", "id": "1203.5.1.2.4", "why": "no part of a room more than 30 ft from a window"},
+   {"code": "bc", "id": "1205", "why": "lighting: natural light through glazing as a share of floor area, or artificial light"},
+   {"code": "mdl", "id": "30", "why": "lighting and ventilation of rooms: windows one-tenth of the floor area, 12 sf minimum, opening on a street, yard or court; room depth limits"},
+   {"code": "mdl", "id": "26", "why": "height, bulk and open spaces: the yards and courts that windows may open onto"},
+   {"code": "mdl", "id": "173", "why": "windows in rooms of converted dwellings (Article 6)"},
+   {"code": "mdl", "id": "213", "why": "lighting and ventilation of rooms in tenements (Article 7)"},
+   {"code": "hmc", "id": "27-2058", "why": "living rooms in multiple dwellings erected after 1929; 27-2059 to 27-2062 cover converted dwellings, new law and old law tenements, and one- and two-family dwellings"},
+   {"code": "zr", "id": "12-10", "term": "legally required window", "why": "the zoning definition that fixes which windows must face a street, yard or court"},
+   {"code": "zr", "id": "23-372", "why": "minimum distance between legally required windows and lot lines"},
+   {"code": "zr", "id": "23-371", "why": "minimum distance between buildings on the same zoning lot"}
+  ]
+ },
+
+ "yards and courts": {
+  "question": "What open area must a lot keep, and what may a window open onto?",
+  "aliases": ["yard", "court", "rear yard", "side yard", "front yard", "open space", "setback"],
+  "cites": [
+   {"code": "zr", "id": "23-30", "why": "yards, courts and other open area regulations in residence districts: front, side and rear yards, courts, distances between buildings and windows"},
+   {"code": "mdl", "id": "26", "why": "height, bulk and open spaces for multiple dwellings erected after 1929: yards, courts, shafts and the windows that may open on them"},
+   {"code": "mdl", "id": "172", "why": "yards and courts of converted dwellings"},
+   {"code": "mdl", "id": "212", "why": "yards and courts of tenements"}
+  ]
+ },
+
+ "egress": {
+  "question": "How many exits does a dwelling need, how far may one travel to them, and what must doors, stairs and escape windows provide?",
+  "aliases": ["exits", "ingress", "means of egress", "stairs", "stair", "fire escape", "travel distance", "second exit", "doors"],
+  "cites": [
+   {"code": "bc", "id": "1004", "why": "occupant load, which drives the number and width of exits"},
+   {"code": "bc", "id": "1006", "why": "number of exits and exit access doorways from a space and from a story"},
+   {"code": "bc", "id": "1010", "why": "doors, gates and turnstiles: widths, swing, hardware"},
+   {"code": "bc", "id": "1011", "why": "stairways: width, riser and tread, headroom, handrails"},
+   {"code": "bc", "id": "1017", "why": "exit access travel distance"},
+   {"code": "bc", "id": "1030", "why": "emergency escape and rescue openings (sleeping-room windows): size, sill height, window wells"},
+   {"code": "mdl", "id": "52", "why": "stairs in multiple dwellings erected after 1929"},
+   {"code": "mdl", "id": "53", "why": "fire-escapes as a required means of egress"},
+   {"code": "mdl", "id": "102", "why": "stairs in fireproof multiple dwellings (Article 4)"},
+   {"code": "mdl", "id": "187", "why": "egress from converted dwellings (Article 6)"}
+  ]
+ },
+
+ "bathrooms and kitchens": {
+  "question": "What must every dwelling unit have for toilet, bath and cooking, and how may those rooms be arranged and ventilated?",
+  "aliases": ["bathroom", "water closet", "toilet", "kitchen", "kitchenette", "plumbing fixtures", "shower"],
+  "cites": [
+   {"code": "bc", "id": "1210", "why": "toilet and bathroom finishes, privacy and clearances"},
+   {"code": "bc", "id": "1208.1", "why": "kitchens and kitchenettes: 3 ft clear passageway between counters, appliances and walls"},
+   {"code": "mdl", "id": "33", "why": "cooking spaces: size, ventilation and separation of kitchens and kitchenettes"},
+   {"code": "mdl", "id": "76", "why": "water-closet and bath accommodations: one per apartment, within the apartment, ventilated"},
+   {"code": "mdl", "id": "77", "why": "plumbing and drainage"},
+   {"code": "hmc", "id": "27-2063", "why": "where water closets may be located"},
+   {"code": "hmc", "id": "27-2064", "why": "size and construction of water closet compartments"},
+   {"code": "hmc", "id": "27-2066", "why": "sanitary facilities every apartment must have"},
+   {"code": "hmc", "id": "27-2070", "why": "kitchen facilities and equipment"},
+   {"code": "hmc", "id": "27-2071", "why": "lighting and ventilation of kitchens and kitchenettes"},
+   {"code": "hmc", "id": "27-2073", "why": "kitchens and kitchenettes in one- and two-family dwellings"}
+  ]
+ },
+
+ "cellars and basements": {
+  "question": "May a basement or cellar be lived in, and how is each defined?",
+  "aliases": ["cellar", "basement", "below grade", "garden apartment", "basement apartment"],
+  "cites": [
+   {"code": "zr", "id": "12-10", "term": "basement", "why": "zoning definition: at least half its height above curb level"},
+   {"code": "zr", "id": "12-10", "term": "cellar", "why": "zoning definition: more than half its height below curb level; cellar space is not floor area"},
+   {"code": "mdl", "id": "4", "why": "statutory definitions, including basement, cellar, class A and class B dwellings"},
+   {"code": "mdl", "id": "34", "why": "rooms in basements and cellars of multiple dwellings erected after 1929: when a basement may be occupied and the height, damp-proofing and window requirements"},
+   {"code": "mdl", "id": "177", "why": "rooms in basements and cellars of converted dwellings"},
+   {"code": "mdl", "id": "216", "why": "rooms in basements and cellars of tenements"},
+   {"code": "mdl", "id": "article-7-d", "why": "the 2024 state law letting the city legalize and convert basement and cellar dwelling units, with tenant protections"},
+   {"code": "hmc", "id": "subchapter-3-article-5", "why": "occupancy of cellars and basements, one section per building class"},
+   {"code": "hmc", "id": "27-2083", "why": "multiple dwellings erected after 1929"},
+   {"code": "hmc", "id": "27-2087", "why": "one- and two-family dwellings"},
+   {"code": "bc", "id": "1208.2", "why": "ceiling height exceptions for habitable rooms in basements"}
+  ]
+ },
+
+ "occupancy": {
+  "question": "How many people may live in a dwelling unit, which occupancies are prohibited, and what counts as a family?",
+  "aliases": ["overcrowding", "persons per room", "family", "roommates", "maximum occupancy", "boarders", "sro", "rooming"],
+  "cites": [
+   {"code": "hmc", "id": "27-2075", "why": "maximum permitted occupancy: 80 sf of livable floor area per person, and the rooms that count"},
+   {"code": "hmc", "id": "27-2076", "why": "prohibited occupancies: which rooms and dwellings may not be lived in"},
+   {"code": "hmc", "id": "27-2077", "why": "conversions to rooming units prohibited"},
+   {"code": "hmc", "id": "27-2078", "why": "rental of rooms to boarders"},
+   {"code": "hmc", "id": "27-2004", "why": "Housing Maintenance Code definitions, including family, dwelling unit, rooming unit, living room"},
+   {"code": "mdl", "id": "4", "why": "Multiple Dwelling Law definitions: multiple dwelling, class A and class B, apartment, family"},
+   {"code": "zr", "id": "12-10", "term": "dwelling unit", "why": "the zoning definition of a dwelling unit"},
+   {"code": "zr", "id": "12-10", "term": "rooming unit", "why": "the zoning definition of a rooming unit (single-room occupancy)"}
+  ]
+ },
+
+ "floor area": {
+  "question": "What counts toward zoning floor area, and how much may the lot carry?",
+  "aliases": ["far", "zoning floor area", "floor area ratio", "bulk"],
+  "cites": [
+   {"code": "zr", "id": "12-10", "term": "floor area", "why": "the definition: what is counted and the exclusions (cellars, mechanical, certain balconies and stairs)"},
+   {"code": "zr", "id": "12-10", "term": "floor area ratio", "why": "the ratio of floor area to lot area"},
+   {"code": "zr", "id": "23-20", "why": "floor area and open space regulations in residence districts"},
+   {"code": "zr", "id": "23-22", "why": "floor area ratio for R6 through R12 districts"}
+  ]
+ },
+
+ "existing buildings": {
+  "question": "What may be altered, enlarged or converted in a building that no longer meets today's zoning or was built under an earlier law?",
+  "aliases": ["non-complying", "noncomplying", "enlargement", "alteration", "renovation", "rehab", "grandfathered", "conversion", "prior code", "existing"],
+  "cites": [
+   {"code": "zr", "id": "54-00", "why": "general provisions for non-complying buildings"},
+   {"code": "zr", "id": "54-20", "why": "repairs or alterations of non-complying buildings"},
+   {"code": "zr", "id": "54-30", "why": "enlargements or conversions of non-complying buildings"},
+   {"code": "zr", "id": "54-40", "why": "damage or destruction: what may be rebuilt"},
+   {"code": "zr", "id": "52-40", "why": "enlargements or extensions of non-conforming uses"},
+   {"code": "zr", "id": "12-10", "term": "non-complying", "why": "the zoning definition of non-complying"},
+   {"code": "zr", "id": "12-10", "term": "enlargement", "why": "the zoning definition of an enlargement"},
+   {"code": "mdl", "id": "9", "why": "buildings converted or altered: which provisions then apply"},
+   {"code": "mdl", "id": "13", "why": "application of the law to existing dwellings"},
+   {"code": "mdl", "id": "171", "why": "alterations of converted dwellings"},
+   {"code": "mdl", "id": "218", "why": "alterations of tenements"},
+   {"code": "hmc", "id": "27-2003", "why": "the Housing Maintenance Code applies to all dwellings, existing ones included"}
+  ]
+ },
+
+ "accessibility": {
+  "question": "Which dwelling units must be accessible or adaptable, and what does that require of the layout?",
+  "aliases": ["ada", "accessible", "adaptable", "wheelchair", "type a unit", "type b unit"],
+  "cites": [
+   {"code": "bc", "id": "1107", "why": "dwelling units and sleeping units: which must be accessible, Type A or Type B"},
+   {"code": "bc", "id": "1107.6", "why": "Group R occupancies"},
+   {"code": "bc", "id": "1104", "why": "accessible route within the building and to the units"}
+  ]
+ },
+
+ "fire separation": {
+  "question": "What fire-rated construction must separate dwelling units from each other and from corridors, and when are sprinklers required?",
+  "aliases": ["fire rating", "fire partition", "corridor rating", "sprinkler", "sprinklers", "fire wall"],
+  "cites": [
+   {"code": "bc", "id": "420", "why": "Groups I-1, R-1, R-2 and R-3: separation walls and horizontal assemblies between units and corridors"},
+   {"code": "bc", "id": "708", "why": "fire partitions: rating and continuity"},
+   {"code": "bc", "id": "903.2.8", "why": "when Group R buildings must be sprinklered"},
+   {"code": "mdl", "id": "189", "why": "stair and public hall construction in converted dwellings"}
+  ]
+ }
+}
