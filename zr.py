@@ -796,6 +796,16 @@ def topics(name: Optional[str] = None, with_text: bool = False) -> dict:
             entry["term"] = c["term"]
         if code not in loaded:
             entry["status"] = "code not loaded in this clone"
+        elif "term" in c and code != "zr":  # one paragraph of BC 202, MDL § 4 or HMC § 27-2004
+            r = con.execute("SELECT * FROM sections WHERE code = ? AND id = ?", (code, sid)).fetchone()
+            paras = definition_paragraphs(r["body_md"], c["term"], strict=True) if r else []
+            if not paras:
+                entry["status"] = f"no definition of {c['term']!r} in {cite(code, sid)}"
+            else:
+                entry.update({"title": f"definition of {c['term']}", "url": r["url"], "last_amended": r["last_amended"],
+                              "place": r["place"], "open": f'define "{c["term"]}"'})
+                if with_text:
+                    entry["body_md"] = "\n\n".join(paras)
         elif "term" in c:  # a Zoning Resolution 12-10 definition rather than a whole section
             d = define(c["term"], 1)
             if "error" in d:
