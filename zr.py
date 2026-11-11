@@ -48,8 +48,10 @@ CODES = {
 ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10, "XI": 11,
          "XII": 12, "XIII": 13, "XIV": 14}
 SCOPES = ("sections", "definitions", "appendices", "all")
+FENCE_RE = re.compile(r"```.*?```", re.S)  # fixed-width table blocks (Building Code PDFs): shown by get, left out of the search text
+_NUMBERED_RE = re.compile(r"^[A-Z]?\d")  # 23-344, 1208.1, D101.1 are sections; article-3, chapter-10, appendix-d are headings
 TITLE_WEIGHT = 8.0  # bm25() weights follow the FTS5 column order: code, id (unindexed), title, text
-SCHEMA_VERSION = "3"  # bump when SCHEMA or what build_index stores changes; clones then rebuild on the next run
+SCHEMA_VERSION = "4"  # bump when SCHEMA or what build_index stores changes; clones then rebuild on the next run
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -155,7 +157,7 @@ def build_index(db: pathlib.Path = DB) -> dict:
             if sid in seen:
                 continue
             seen.add(sid)
-            text = r.get("text") or markdown_to_text(r.get("body_md") or "")
+            text = r.get("text") or markdown_to_text(FENCE_RE.sub(" ", r.get("body_md") or ""))
             if code == "zr":
                 place = f"Art {r['article']} Ch {r['chapter']}"
                 con.execute(
@@ -252,14 +254,22 @@ def split_ref(ref: str) -> tuple[str, str]:
     ref = ref.strip()
     code, sep, rest = ref.partition(":")
     if sep and code.lower() in CODES:
-        return code.lower(), rest.strip()
+        rest = rest.strip()
+        if re.match(r"^[a-z]\d", rest):  # bc:d101.1 -> D101.1 (Building Code appendix ids carry a capital letter)
+            rest = rest[0].upper() + rest[1:]
+        return code.lower(), rest
     return "zr", ref
+
+
+def numbered(sid: str) -> bool:
+    """A section the law numbers (23-344, 1208.1, D101.1) as opposed to a heading this repo names (article-3, appendix-d)."""
+    return bool(_NUMBERED_RE.match(sid))
 
 
 def cite(code: str, sid: str, title: Optional[str] = None) -> str:
     """'MDL § 31' for a numbered section; just 'MDL' for a heading such as article-3 (its title follows)."""
     tmpl = CODES[code][1]
-    if sid[:1].isdigit():
+    if numbered(sid):
         return tmpl.format(id=sid)
     return tmpl.split(" ")[0]  # a heading such as article-3: the title is printed after it
 

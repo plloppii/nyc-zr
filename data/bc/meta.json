@@ -1,9 +1,12 @@
 {
  "source": "https://www.nyc.gov/site/buildings/codes/2022-construction-codes.page",
- "edition": "2022 NYC Building Code, the 34 chapter PDFs DOB publishes (there is no chapter 33 among them); appendices not included",
- "fetched_at": "2026-11-10T22:08:31+00:00",
+ "edition": "2022 NYC Building Code: the 34 chapter PDFs DOB publishes (there is no chapter 33 among them) and Appendix D (fire districts); the other appendices are not included",
+ "fetched_at": "2026-11-11T17:54:37+00:00",
  "latest_amendment": "2023-06-10",
- "entries": 5809,
+ "entries": 5831,
  "chapters": 34,
- "sections": 366
+ "appendices": [
+  "D"
+ ],
+ "sections": 372
 }
