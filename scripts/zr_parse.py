@@ -18,6 +18,7 @@ import datetime as dt
 import json
 import pathlib
 import re
+from urllib.parse import quote
 import shutil
 import sys
 
@@ -191,7 +192,7 @@ def parse_definitions(view, source_sid):
                 "definition_md": md,
                 "defined_terms": sorted(col.defined_terms) if col else [],
                 "cross_refs": sorted(col.cross_refs) if col else [],
-                "url": f"{BASE}/article-i/chapter-2/12-10#term-{term}",
+                "url": f"{BASE}/article-i/chapter-2/12-10#{quote('term-' + term)}",  # the site anchors each definition as id="term-<term as printed>"; the fragment must be percent-encoded
             })
     return out
 

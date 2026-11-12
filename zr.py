@@ -48,8 +48,10 @@ CODES = {
 ROMAN = {"I": 1, "II": 2, "III": 3, "IV": 4, "V": 5, "VI": 6, "VII": 7, "VIII": 8, "IX": 9, "X": 10, "XI": 11,
          "XII": 12, "XIII": 13, "XIV": 14}
 SCOPES = ("sections", "definitions", "appendices", "all")
+FENCE_RE = re.compile(r"```.*?```", re.S)  # fixed-width table blocks (Building Code PDFs): shown by get, left out of the search text
+_NUMBERED_RE = re.compile(r"^[A-Z]?\d")  # 23-344, 1208.1, D101.1 are sections; article-3, chapter-10, appendix-d are headings
 TITLE_WEIGHT = 8.0  # bm25() weights follow the FTS5 column order: code, id (unindexed), title, text
-SCHEMA_VERSION = "3"  # bump when SCHEMA or what build_index stores changes; clones then rebuild on the next run
+SCHEMA_VERSION = "4"  # bump when SCHEMA or what build_index stores changes; clones then rebuild on the next run
 
 
 # ----------------------------------------------------------------------------------------------------------------
@@ -155,7 +157,7 @@ def build_index(db: pathlib.Path = DB) -> dict:
             if sid in seen:
                 continue
             seen.add(sid)
-            text = r.get("text") or markdown_to_text(r.get("body_md") or "")
+            text = r.get("text") or markdown_to_text(FENCE_RE.sub(" ", r.get("body_md") or ""))
             if code == "zr":
                 place = f"Art {r['article']} Ch {r['chapter']}"
                 con.execute(
@@ -252,14 +254,22 @@ def split_ref(ref: str) -> tuple[str, str]:
     ref = ref.strip()
     code, sep, rest = ref.partition(":")
     if sep and code.lower() in CODES:
-        return code.lower(), rest.strip()
+        rest = rest.strip()
+        if re.match(r"^[a-z]\d", rest):  # bc:d101.1 -> D101.1 (Building Code appendix ids carry a capital letter)
+            rest = rest[0].upper() + rest[1:]
+        return code.lower(), rest
     return "zr", ref
+
+
+def numbered(sid: str) -> bool:
+    """A section the law numbers (23-344, 1208.1, D101.1) as opposed to a heading this repo names (article-3, appendix-d)."""
+    return bool(_NUMBERED_RE.match(sid))
 
 
 def cite(code: str, sid: str, title: Optional[str] = None) -> str:
     """'MDL § 31' for a numbered section; just 'MDL' for a heading such as article-3 (its title follows)."""
     tmpl = CODES[code][1]
-    if sid[:1].isdigit():
+    if numbered(sid):
         return tmpl.format(id=sid)
     return tmpl.split(" ")[0]  # a heading such as article-3: the title is printed after it
 
@@ -364,7 +374,7 @@ def search(query: str, limit: int = 10, code: Optional[str] = None, article: Opt
             fam = district_family(district)
             sql.append(f"AND s.id IN (SELECT section_id FROM section_districts WHERE district IN ({','.join('?' * len(fam))}))")
             params.extend(fam)
-        sql.append("ORDER BY rank LIMIT ?"); params.append(limit)
+        sql.append("ORDER BY rank LIMIT ?"); params.append(min(limit * 4, 200))  # extra rows: same-title sections collapse
         return con.execute(" ".join(sql), params).fetchall()
 
     def run_definitions(fq):
@@ -388,11 +398,22 @@ def search(query: str, limit: int = 10, code: Optional[str] = None, article: Opt
                 rows = run_sections(" OR ".join(split_terms(fq)))
                 out["note"] = ("no section matched all terms; showing OR matches" if rows
                                else "no section matched all terms, nor any single term")
+            shown: dict[tuple, dict] = {}
             for r in rows:
+                key = (r["code"], (r["title"] or "").strip().lower())
+                if numbered(r["id"]) and key in shown:
+                    # the same provision for another dwelling class or district type (MDL §§ 147, 188, 233 "Bulkheads and
+                    # scuttles"; ZR 33-42 and 43-42 "Permitted Obstructions"): one row, the others listed on it
+                    shown[key].setdefault("also", []).append(ref(r["code"], r["id"]))
+                    continue
+                if len(out["hits"]) >= limit:
+                    continue
                 h = {"type": "section", **brief(r), "snippet": r["snip"]}
                 if r["code"] == "zr":
                     h["districts"] = json.loads(r["districts"])[:12]
                 out["hits"].append(h)
+                if numbered(r["id"]):
+                    shown[key] = h
         if scope in ("definitions", "all") and code in (None, "zr"):
             for r in run_definitions(fq):
                 out["hits"].append({"type": "definition", "term": r["term"], "scope": r["scope"],
@@ -404,17 +425,97 @@ def search(query: str, limit: int = 10, code: Optional[str] = None, article: Opt
                                     "last_amended": r["last_amended"], "snippet": r["snip"]})
     except sqlite3.OperationalError as e:
         return {"error": f"bad query syntax: {e}", "fts_query": fq}
+    if scope == "sections" and not _OPERATOR_RE.search(fq) and not (anum or district):
+        defs = query_definitions(query)
+        if defs:
+            out["definitions"] = defs
+    tops = query_topics(query)
+    if tops:
+        out["topics"] = tops
     out["count"] = len(out["hits"])
     return out
+
+
+def query_definitions(query: str) -> list[dict]:
+    """How the laws define the query when it is a term of art: ZR 12-10 by exact term, then one paragraph each from
+    BC 202, MDL § 4 and HMC § 27-2004. Search prints these above the hits, since the definition fixes the sense."""
+    con = db()
+    t = query.strip().lower().strip('"*_ ')
+    if not t:
+        return []
+    out = []
+    rows = con.execute(_BY_ALIAS, (t, 1)).fetchall()
+    if not rows and t.endswith("s"):
+        rows = con.execute(_BY_ALIAS, (t[:-1], 1)).fetchall()
+    for r in rows:
+        out.append({"code": "zr", "cite": f"ZR § {r['source_section']}", "term": r["term"], "url": r["url"],
+                    "text": _clip(r["text"] or "")})
+    seen_codes = set()
+    for o in other_definitions(t, 12, strict=True):
+        if o["code"] not in seen_codes:
+            seen_codes.add(o["code"])
+            out.append({"code": o["code"], "cite": o["cite"], "term": t, "url": o["url"], "text": _clip(o["text"])})
+    return out
+
+
+def _singular(w: str) -> str:
+    return w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w
+
+
+def query_topics(query: str, limit: int = 3) -> list[dict]:
+    """Topics (data/topics.json) whose name or one of whose keywords the query contains as whole words, singular or
+    plural: "bulkhead" and "stair bulkheads" both point at rooftop structures. Longest match first, so a search is
+    routed to the topic map before the reader digs through hits."""
+    if not TOPICS.exists():
+        return []
+    words = [_singular(w) for w in re.findall(r"[a-z0-9][a-z0-9'-]*", query.lower())]
+    if not words:
+        return []
+    data = json.loads(TOPICS.read_text(encoding="utf-8"))
+    found = []
+    for name, t in data.items():
+        if name.startswith("_"):
+            continue
+        best = ""
+        for key in (name, *t.get("aliases", [])):
+            kw = [_singular(w) for w in key.lower().split()]
+            n = len(kw)
+            if n and len(key) > len(best) and any(words[i:i + n] == kw for i in range(len(words) - n + 1)):
+                best = key
+        if best:
+            refs: list[str] = []
+            for c in t["cites"]:
+                r = ref(c["code"], c["id"])
+                if r not in refs:
+                    refs.append(r)
+            found.append({"topic": name, "matched": best, "question": t["question"], "refs": refs})
+    found.sort(key=lambda x: -len(x["matched"].split()))
+    return found[:limit]
+
+
+def _clip(text: str, n: int = 240) -> str:
+    text = " ".join(text.split())
+    if len(text) <= n:
+        return text
+    cut = text[:n].rsplit(" ", 1)[0]
+    return cut + " …"
 
 
 def render_search(d: dict) -> str:
     lines = [f"{d['count']} hits for {d['query']!r}" + (f" in {d['code']}" if d["code"] != "all" else "")
              + (f"  ({d['note']})" if d.get("note") else "")]
+    for t in d.get("topics", []):
+        lines.append(f"  See topic: {t['topic']}  [{', '.join(t['refs'])}]")
+    for x in d.get("definitions", []):
+        lines.append(f"  defined in {x['cite']}: {x['text']}")
+    if d.get("definitions"):
+        lines.append(f"  (define {d['query']!r} prints the definitions in full)")
     for h in d["hits"]:
         if h["type"] == "section":
-            tag = " · ".join(x for x in (h["cite"] if h["id"][:1].isdigit() else "heading", h["place"], h["last_amended"]) if x)
+            tag = " · ".join(x for x in (h["cite"] if numbered(h["id"]) else "heading", h["place"], h["last_amended"]) if x)
             lines.append(f"\n{ref(h['code'], h['id'])}  {h['title']}   [{tag}]\n    {h['url']}\n    {h['snippet']}")
+            if h.get("also"):
+                lines.append(f"    also, same title: {', '.join(h['also'])}")
         elif h["type"] == "definition":
             lines.append(f"\n[def] {h['term']}  ({h['applicability']})\n    {h['snippet']}")
         else:
@@ -618,22 +719,33 @@ def define(term: str, limit: int = 10) -> dict:
 DEFINITION_SECTIONS = (("bc", "202"), ("mdl", "4"), ("hmc", "27-2004"))  # where the other laws define their terms
 
 
-def other_definitions(term: str, limit: int = 6) -> list[dict]:
-    """Paragraphs of the other laws' definition sections that define the term (it appears at the paragraph's start)."""
-    con = db()
+def definition_paragraphs(body_md: str, term: str, strict: bool = False) -> list[str]:
+    """Paragraphs of a definitions section that define the term (BULKHEAD. An enclosed ...; 13. A "basement" is ...),
+    singular or plural. Strict: the term itself opens the paragraph, so "egress" does not return MEANS OF EGRESS.
+    Loose: the term appears in the paragraph's first words, which define also finds related terms with."""
     t = term.strip().lower()
-    pat = re.compile(r"\b" + re.escape(t) + r"s?\b", re.I)
+    if len(t) > 4 and t.endswith("s") and not t.endswith("ss"):
+        t = t[:-1]
+    word = re.escape(t) + r"(?:s|es)?\b"
+    if strict:  # the whole defined term, then its definition: not EGRESS, COURT. for "egress"
+        pat = re.compile(r"^(?:\d+\.\s*)?(?:[a-z]\.\s*)?(?:an?\s+|the\s+terms?\s+)?[“\"]?" + word + r"[”\"]?(?:\.|\s+(?:is|are|shall|means)\b)", re.I)
+    else:
+        pat = re.compile(r"\b" + word, re.I)
+    return [p.strip() for p in (body_md or "").split("\n\n") if len(p.strip()) > 60 and pat.search(p.strip()[:45])]
+
+
+def other_definitions(term: str, limit: int = 6, strict: bool = False) -> list[dict]:
+    """The other laws' definitions of the term, from BC 202, MDL § 4 and HMC § 27-2004."""
+    con = db()
     out = []
     for code, sid in DEFINITION_SECTIONS:
         r = con.execute("SELECT * FROM sections WHERE code = ? AND id = ?", (code, sid)).fetchone()
         if not r:
             continue
-        for para in (r["body_md"] or "").split("\n\n"):
-            head = para.strip()[:45]  # the defined term opens the paragraph, and a definition is more than a list item
-            if len(para.strip()) > 60 and pat.search(head):
-                out.append({"code": code, "id": sid, "cite": cite(code, sid), "url": r["url"], "text": para.strip()})
-                if len(out) >= limit:
-                    return out
+        for para in definition_paragraphs(r["body_md"], term, strict):
+            out.append({"code": code, "id": sid, "cite": cite(code, sid), "url": r["url"], "text": para})
+            if len(out) >= limit:
+                return out
     return out
 
 
@@ -724,6 +836,16 @@ def topics(name: Optional[str] = None, with_text: bool = False) -> dict:
             entry["term"] = c["term"]
         if code not in loaded:
             entry["status"] = "code not loaded in this clone"
+        elif "term" in c and code != "zr":  # one paragraph of BC 202, MDL § 4 or HMC § 27-2004
+            r = con.execute("SELECT * FROM sections WHERE code = ? AND id = ?", (code, sid)).fetchone()
+            paras = definition_paragraphs(r["body_md"], c["term"], strict=True) if r else []
+            if not paras:
+                entry["status"] = f"no definition of {c['term']!r} in {cite(code, sid)}"
+            else:
+                entry.update({"title": f"definition of {c['term']}", "url": r["url"], "last_amended": r["last_amended"],
+                              "place": r["place"], "open": f'define "{c["term"]}"'})
+                if with_text:
+                    entry["body_md"] = "\n\n".join(paras)
         elif "term" in c:  # a Zoning Resolution 12-10 definition rather than a whole section
             d = define(c["term"], 1)
             if "error" in d:

@@ -176,5 +176,96 @@
    {"code": "bc", "id": "903.2.8", "why": "when Group R buildings must be sprinklered"},
    {"code": "mdl", "id": "189", "why": "stair and public hall construction in converted dwellings"}
   ]
+ },
+
+ "rooftop structures": {
+  "question": "What may go on a roof (bulkheads, penthouses, decks) without counting as a story or floor area?",
+  "aliases": [
+   "bulkhead",
+   "bulkheads",
+   "penthouse",
+   "penthouses",
+   "roof",
+   "rooftop",
+   "roof deck",
+   "stair bulkhead",
+   "rooftop mechanical"
+  ],
+  "note": "Zoning and the Building Code ask different questions. Zoning asks whether the structure penetrates the height limit or adds floor area; the Building Code asks whether it adds a story or height under Table 504.3 and how it must be built.",
+  "cites": [
+   {
+    "code": "bc",
+    "id": "202",
+    "term": "bulkhead",
+    "why": "the Building Code's definition: an enclosed rooftop structure sheltering a shaft, stair, tank or equipment, not for human occupancy"
+   },
+   {
+    "code": "bc",
+    "id": "202",
+    "term": "penthouse",
+    "why": "the companion definition: an enclosed rooftop structure designed or used for human occupancy"
+   },
+   {
+    "code": "bc",
+    "id": "504.3",
+    "why": "Exception 1: rooftop structures (tanks, mechanical equipment, bulkheads, penthouses, greenhouses, chimneys) count as neither building height nor a story while their aggregate area is 33 1/3 percent of the roof or less"
+   },
+   {
+    "code": "bc",
+    "id": "1510.1",
+    "why": "rooftop structures are governed by Section 1510 and stay subject to the Chapter 5 roof-coverage and height limits"
+   },
+   {
+    "code": "bc",
+    "id": "1510.2.1",
+    "why": "construction type for bulkheads and penthouses, relaxed when all rooftop structures stay within 33 1/3 percent of the roof"
+   },
+   {
+    "code": "bc",
+    "id": "1510.2.2",
+    "why": "penthouse walls and roofs follow Tables 601 and 602 for the building's construction class"
+   },
+   {
+    "code": "bc",
+    "id": "1510.2.3",
+    "why": "a bulkhead may shelter only mechanical equipment or shaft openings, with louvers or flashing against the weather"
+   },
+   {
+    "code": "bc",
+    "id": "1510.8",
+    "why": "buildings over 22 feet with a low-slope roof need a 42-inch parapet, guard or fence, which may sit up to 6 feet in from the wall"
+   },
+   {
+    "code": "bc",
+    "id": "1510.9",
+    "why": "antenna supports, flagpoles, drying frames, duckboarding and decking or platforms covering up to 20 percent of the roof may be combustible if under 12 feet high"
+   },
+   {
+    "code": "bc",
+    "id": "1011.12",
+    "why": "buildings of four or more stories or over 40 feet need a stair to the roof through a bulkhead complying with 1510.2"
+   },
+   {
+    "code": "zr",
+    "id": "12-10",
+    "term": "floor area",
+    "why": "zoning floor area counts floor space in penthouses but excludes elevator or stair bulkheads, water tanks and cooling towers (except in R2A)"
+   },
+   {
+    "code": "zr",
+    "id": "23-412",
+    "why": "paragraph (c): elevator and stair bulkheads, tanks and mechanical equipment may penetrate the height limit, set back from the street wall, within 50 or 30 percent of the building's lot coverage and 15, 25, 35 or 55 feet above the permitted height"
+   },
+   {
+    "code": "zr",
+    "id": "23-432",
+    "why": "the maximum base and building heights in R6 through R12 districts that those obstructions are measured above"
+   },
+   {
+    "code": "mdl",
+    "id": "4",
+    "why": "the Multiple Dwelling Law reaches only multiple dwellings, three or more families living independently; one- and two-family houses are outside it"
+   }
+  ]
  }
 }
