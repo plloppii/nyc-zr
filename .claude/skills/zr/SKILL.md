@@ -24,11 +24,11 @@ python3 ~/nyc-zr/zr.py info                          # what is loaded and what d
 Add `--json` to any command. Errors go to stderr with exit status 1.
 
 How to answer a question about a plan: start with `topic` to find which laws speak to it, read the cited sections,
-then search for anything the topic map does not cover. When the query is a defined term, `search` prints the laws'
-definitions above the hits; sections with the same title in one law (the MDL repeats a rule for each dwelling
-class) collapse into one row that names the others. Quote the citation exactly as printed (`ZR § 23-344`,
-`BC 1208.1`, `MDL § 31`, `HMC § 27-2074`) with its `url`. The tool returns the law; deciding whether a plan complies
-is the reader's reasoning.
+then search for anything the topic map does not cover. When a query names a topic or one of its keywords, `search`
+prints `See topic: <name>` with the topic's citations above the hits; when it is a defined term, the laws' definitions
+print there too. Sections with the same title in one law (the MDL repeats a rule for each dwelling class) collapse
+into one row that names the others. Quote the citation exactly as printed (`ZR § 23-344`, `BC 1208.1`, `MDL § 31`,
+`HMC § 27-2074`) with its `url`. The tool returns the law; deciding whether a plan complies is the reader's reasoning.
 
 Applicability: before quoting the Multiple Dwelling Law or the Housing Maintenance Code, say whether it applies to
 the building, and name any law that does not.

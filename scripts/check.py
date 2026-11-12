@@ -51,6 +51,12 @@ check(any(d["code"] == "bc" and d["text"].startswith("BULKHEAD.") for d in s.get
 scuttles = [h for h in s["hits"] if h["code"] == "mdl" and h["title"].lower() == "bulkheads and scuttles"]
 check(len(scuttles) == 1 and len(scuttles[0].get("also", [])) == 2,
       "the three MDL 'Bulkheads and scuttles' sections collapse into one row listing the other two")
+check(any(t["topic"] == "rooftop structures" and "bc:504.3" in t["refs"] for t in s.get("topics", [])),
+      "search 'bulkhead' carries the rooftop structures topic and its refs in --json")
+check("See topic: rooftop structures" in zr.render_search(s), "search 'bulkhead' prints 'See topic: rooftop structures'")
+named = [t["topic"] for t in zr.search("rear yard corner lot", 5).get("topics", [])]
+check(named == ["yards and courts"], f"search 'rear yard corner lot' points at {named}")
+check(not zr.search("corner lot", 5).get("topics"), "search 'corner lot' names no topic")
 
 # the topic map resolves
 topics = json.loads((ROOT / "data/topics.json").read_text(encoding="utf-8"))

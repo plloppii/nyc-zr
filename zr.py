@@ -429,6 +429,9 @@ def search(query: str, limit: int = 10, code: Optional[str] = None, article: Opt
         defs = query_definitions(query)
         if defs:
             out["definitions"] = defs
+    tops = query_topics(query)
+    if tops:
+        out["topics"] = tops
     out["count"] = len(out["hits"])
     return out
 
@@ -455,6 +458,41 @@ def query_definitions(query: str) -> list[dict]:
     return out
 
 
+def _singular(w: str) -> str:
+    return w[:-1] if len(w) > 3 and w.endswith("s") and not w.endswith("ss") else w
+
+
+def query_topics(query: str, limit: int = 3) -> list[dict]:
+    """Topics (data/topics.json) whose name or one of whose keywords the query contains as whole words, singular or
+    plural: "bulkhead" and "stair bulkheads" both point at rooftop structures. Longest match first, so a search is
+    routed to the topic map before the reader digs through hits."""
+    if not TOPICS.exists():
+        return []
+    words = [_singular(w) for w in re.findall(r"[a-z0-9][a-z0-9'-]*", query.lower())]
+    if not words:
+        return []
+    data = json.loads(TOPICS.read_text(encoding="utf-8"))
+    found = []
+    for name, t in data.items():
+        if name.startswith("_"):
+            continue
+        best = ""
+        for key in (name, *t.get("aliases", [])):
+            kw = [_singular(w) for w in key.lower().split()]
+            n = len(kw)
+            if n and len(key) > len(best) and any(words[i:i + n] == kw for i in range(len(words) - n + 1)):
+                best = key
+        if best:
+            refs: list[str] = []
+            for c in t["cites"]:
+                r = ref(c["code"], c["id"])
+                if r not in refs:
+                    refs.append(r)
+            found.append({"topic": name, "matched": best, "question": t["question"], "refs": refs})
+    found.sort(key=lambda x: -len(x["matched"].split()))
+    return found[:limit]
+
+
 def _clip(text: str, n: int = 240) -> str:
     text = " ".join(text.split())
     if len(text) <= n:
@@ -466,6 +504,8 @@ def _clip(text: str, n: int = 240) -> str:
 def render_search(d: dict) -> str:
     lines = [f"{d['count']} hits for {d['query']!r}" + (f" in {d['code']}" if d["code"] != "all" else "")
              + (f"  ({d['note']})" if d.get("note") else "")]
+    for t in d.get("topics", []):
+        lines.append(f"  See topic: {t['topic']}  [{', '.join(t['refs'])}]")
     for x in d.get("definitions", []):
         lines.append(f"  defined in {x['cite']}: {x['text']}")
     if d.get("definitions"):
